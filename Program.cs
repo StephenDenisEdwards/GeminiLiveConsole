@@ -232,6 +232,13 @@ class Program
 						}
 					}
 
+					// Handshake after setup
+					if (msg?.SetupComplete is not null)
+					{
+						Console.WriteLine("[Setup complete]");
+						wroteAnything = true;
+					}
+
 					// When Gemini signals the turn is complete, add a newline and show usage
 					if (msg?.ServerContent?.TurnComplete == true)
 					{
@@ -279,6 +286,9 @@ internal sealed class GeminiMessage
 {
 	public ServerContent? ServerContent { get; set; }
 	public UsageMetadata? UsageMetadata { get; set; }
+
+	// Present as an empty object {} when the server acknowledges setup
+	public object? SetupComplete { get; set; }
 }
 
 internal sealed class ServerContent
