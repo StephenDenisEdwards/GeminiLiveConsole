@@ -1,3 +1,5 @@
+using GeminiLiveConsole.Models;
+
 namespace GeminiLiveConsole;
 
 public sealed class LiveSessionManager

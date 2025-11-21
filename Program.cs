@@ -1,12 +1,9 @@
-using System;
-using System.IO;
+using Microsoft.Extensions.Configuration;
+using NAudio.Wave;
 using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
-using System.Threading;
-using System.Threading.Tasks;
-using Microsoft.Extensions.Configuration;
-using NAudio.Wave;
+using GeminiLiveConsole.Models;
 
 class Program
 {
@@ -282,42 +279,3 @@ class Program
 }
 
 // --- DTOs for Gemini Live responses ---
-internal sealed class GeminiMessage
-{
-	public ServerContent? ServerContent { get; set; }
-	public UsageMetadata? UsageMetadata { get; set; }
-
-	// Present as an empty object {} when the server acknowledges setup
-	public object? SetupComplete { get; set; }
-}
-
-internal sealed class ServerContent
-{
-	public ModelTurn? ModelTurn { get; set; }
-	public bool? TurnComplete { get; set; }
-}
-
-internal sealed class ModelTurn
-{
-	public Part[]? Parts { get; set; }
-}
-
-internal sealed class Part
-{
-	public string? Text { get; set; }
-}
-
-internal sealed class UsageMetadata
-{
-	public int PromptTokenCount { get; set; }
-	public int ResponseTokenCount { get; set; }
-	public int TotalTokenCount { get; set; }
-	public TokenDetail[]? PromptTokensDetails { get; set; }
-	public TokenDetail[]? ResponseTokensDetails { get; set; }
-}
-
-internal sealed class TokenDetail
-{
-	public string? Modality { get; set; }
-	public int TokenCount { get; set; }
-}

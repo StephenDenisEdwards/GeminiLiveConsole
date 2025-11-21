@@ -1,5 +1,6 @@
 using System.Net.WebSockets;
 using System.Text;
+using GeminiLiveConsole.Models;
 using Newtonsoft.Json;
 
 namespace GeminiLiveConsole;

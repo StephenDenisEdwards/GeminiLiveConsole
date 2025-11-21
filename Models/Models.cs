@@ -1,7 +1,7 @@
 using Newtonsoft.Json;
 using System.Collections.Generic;
 
-namespace GeminiLiveConsole;
+namespace GeminiLiveConsole.Models;
 
 public enum IntentType { QUESTION, IMPERATIVE }
 
