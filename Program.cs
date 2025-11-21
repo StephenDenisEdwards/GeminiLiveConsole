@@ -175,7 +175,14 @@ class Program
 		await ws.SendAsync(bytes, WebSocketMessageType.Text, endOfMessage: true, cancellationToken: ct);
 	}
 
-	// --- Receive loop: treat BOTH text and binary frames as UTF-8 JSON ---
+	private static readonly JsonSerializerOptions JsonOpts = new()
+	{
+		PropertyNameCaseInsensitive = true,
+		ReadCommentHandling = JsonCommentHandling.Skip,
+		AllowTrailingCommas = true
+	};
+
+	// --- Receive loop: parse messages and print text + usage ---
 	private static async Task ReceiveLoopAsync(ClientWebSocket ws, CancellationToken token)
 	{
 		var buffer = new byte[16 * 1024];
@@ -206,10 +213,54 @@ class Program
 				var data = ms.ToArray();
 				var json = Encoding.UTF8.GetString(data);
 
-				Console.WriteLine();
-				Console.WriteLine("JSON from Gemini:");
-				Console.WriteLine(json);
-				Console.WriteLine();
+				try
+				{
+					var msg = JsonSerializer.Deserialize<GeminiMessage>(json, JsonOpts);
+					var wroteAnything = false;
+
+					// Stream partial text chunks as they arrive
+					var parts = msg?.ServerContent?.ModelTurn?.Parts;
+					if (parts is { Length: > 0 })
+					{
+						foreach (var p in parts)
+						{
+							if (!string.IsNullOrEmpty(p.Text))
+							{
+								Console.Write(p.Text);
+								wroteAnything = true;
+							}
+						}
+					}
+
+					// When Gemini signals the turn is complete, add a newline and show usage
+					if (msg?.ServerContent?.TurnComplete == true)
+					{
+						Console.WriteLine();
+						if (msg.UsageMetadata is not null)
+						{
+							var u = msg.UsageMetadata;
+							Console.WriteLine($"Tokens: prompt={u.PromptTokenCount}, response={u.ResponseTokenCount}, total={u.TotalTokenCount}");
+						}
+						wroteAnything = true;
+					}
+
+					// Fallback: print raw JSON for unrecognized shapes
+					if (!wroteAnything)
+					{
+						Console.WriteLine();
+						Console.WriteLine("Unrecognized message payload (raw):");
+						Console.WriteLine(json);
+						Console.WriteLine();
+					}
+				}
+				catch (JsonException)
+				{
+					// Not JSON or unexpected format; show raw payload for troubleshooting
+					Console.WriteLine();
+					Console.WriteLine("Non-JSON or unparseable payload:");
+					Console.WriteLine(json);
+					Console.WriteLine();
+				}
 			}
 		}
 		catch (OperationCanceledException)
@@ -221,4 +272,42 @@ class Program
 			Console.WriteLine($"[Receive error] {ex.Message}");
 		}
 	}
+}
+
+// --- DTOs for Gemini Live responses ---
+internal sealed class GeminiMessage
+{
+	public ServerContent? ServerContent { get; set; }
+	public UsageMetadata? UsageMetadata { get; set; }
+}
+
+internal sealed class ServerContent
+{
+	public ModelTurn? ModelTurn { get; set; }
+	public bool? TurnComplete { get; set; }
+}
+
+internal sealed class ModelTurn
+{
+	public Part[]? Parts { get; set; }
+}
+
+internal sealed class Part
+{
+	public string? Text { get; set; }
+}
+
+internal sealed class UsageMetadata
+{
+	public int PromptTokenCount { get; set; }
+	public int ResponseTokenCount { get; set; }
+	public int TotalTokenCount { get; set; }
+	public TokenDetail[]? PromptTokensDetails { get; set; }
+	public TokenDetail[]? ResponseTokensDetails { get; set; }
+}
+
+internal sealed class TokenDetail
+{
+	public string? Modality { get; set; }
+	public int TokenCount { get; set; }
 }
